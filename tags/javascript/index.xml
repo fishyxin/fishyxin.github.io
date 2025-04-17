@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Javascript on 锅菌鱼</title>
+    <link>https://fishyxin.github.io/tags/javascript/</link>
+    <description>Recent content in Javascript on 锅菌鱼</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sun, 24 Nov 2019 00:31:43 +0800</lastBuildDate>
+    <atom:link href="https://fishyxin.github.io/tags/javascript/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Promise实践 封装微信小程序接口</title>
+      <link>https://fishyxin.github.io/post/wechat_miniapp_promise/</link>
+      <pubDate>Sun, 24 Nov 2019 00:31:43 +0800</pubDate>
+      <guid>https://fishyxin.github.io/post/wechat_miniapp_promise/</guid>
+      <description>&lt;p&gt;相信很多开发者都遇到过回调地狱的问题。由于微信小程序的API基本都是基于回调函数的异步操作，如果不使用其他框架或者封装API，特别是使用较多的&lt;code&gt;wx.request()&lt;/code&gt;，基本很快就会遇到回调地狱的问题，维护起来十分痛苦。&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

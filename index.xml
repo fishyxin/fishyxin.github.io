@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>锅菌鱼</title>
+    <link>https://fishyxin.github.io/</link>
+    <description>Recent content on 锅菌鱼</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Wed, 16 Apr 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://fishyxin.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>浅析负载均衡</title>
+      <link>https://fishyxin.github.io/post/loadbalance/</link>
+      <pubDate>Wed, 16 Apr 2025 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/post/loadbalance/</guid>
+      <description>&lt;h1 id=&#34;1-概述&#34;&gt;1. 概述&lt;/h1&gt;&#xA;&lt;p&gt;负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。&#xA;举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。&#xA;通过负载均衡分配流量，提高系统的可用性。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>MySQL索引入门指北</title>
+      <link>https://fishyxin.github.io/post/mysql_index/</link>
+      <pubDate>Wed, 26 Feb 2020 22:31:00 +0800</pubDate>
+      <guid>https://fishyxin.github.io/post/mysql_index/</guid>
+      <description>&lt;p&gt;索引是什么？很多书和文章都会使用图书的目录来类比。目录的目的就是用方便我们查找具体内容的位置，具体的章节的范围。与此类似，MySQL中索引的用途是帮助我们加速查询以及排序。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Go反射 实现任意类型属性拷贝</title>
+      <link>https://fishyxin.github.io/post/go_reflect_simple_copy_properties/</link>
+      <pubDate>Fri, 29 Nov 2019 19:59:14 +0800</pubDate>
+      <guid>https://fishyxin.github.io/post/go_reflect_simple_copy_properties/</guid>
+      <description>&lt;p&gt;开发中会频繁的使用各种对象，在Java中称为Javabean，在Go中用结构体。使用ORM框架时，经常会用实体类来映射数据表，但实际上很少会直接使用映射数据表的实体类对象在各层传输，更多的会使用其他对象(如DTO，VO等)，对读出的实体类对象的属性进行过滤或增加。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Promise实践 封装微信小程序接口</title>
+      <link>https://fishyxin.github.io/post/wechat_miniapp_promise/</link>
+      <pubDate>Sun, 24 Nov 2019 00:31:43 +0800</pubDate>
+      <guid>https://fishyxin.github.io/post/wechat_miniapp_promise/</guid>
+      <description>&lt;p&gt;相信很多开发者都遇到过回调地狱的问题。由于微信小程序的API基本都是基于回调函数的异步操作，如果不使用其他框架或者封装API，特别是使用较多的&lt;code&gt;wx.request()&lt;/code&gt;，基本很快就会遇到回调地狱的问题，维护起来十分痛苦。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title></title>
+      <link>https://fishyxin.github.io/archive/</link>
+      <pubDate>Tue, 01 Jan 2019 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/archive/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title></title>
+      <link>https://fishyxin.github.io/about/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/about/about/</guid>
+      <description></description>
+    </item>
+  </channel>
+</rss>

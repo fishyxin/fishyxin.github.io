@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    
+    <meta property="og:site_name" content="锅菌鱼">
+    <meta property="og:type" content="article">
+
+    
+    <meta property="og:image" content="https://fishyxin.github.io//bg1.jpg">
+    <meta property="twitter:image" content="https://fishyxin.github.io//bg1.jpg" />
+    
+
+    
+    <meta name="title" content="浅析负载均衡" />
+    <meta property="og:title" content="浅析负载均衡" />
+    <meta property="twitter:title" content="浅析负载均衡" />
+    
+
+    
+    <meta name="description" content="负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。通过负载均衡分配流量，提高系统的可用性。">
+    <meta property="og:description" content="负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。通过负载均衡分配流量，提高系统的可用性。" />
+    <meta property="twitter:description" content="负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。通过负载均衡分配流量，提高系统的可用性。" />
+    
+
+    
+    <meta property="twitter:card" content="summary" />
+    
+    
+
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>浅析负载均衡 | 锅菌鱼</title>
+
+    <link rel="canonical" href="/post/loadbalance/">
+
+    
+    
+    
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    
+    <link rel="stylesheet" href="/css/hugo-theme-cleanwhite.min.css">
+
+    
+    <link rel="stylesheet" href="/css/zanshang.css">
+
+    
+    <link rel="stylesheet" href="/css/font-awesome.all.min.css">
+
+    
+    
+
+    
+    <script src="/js/jquery.min.js"></script>
+
+    
+    <script src="/js/bootstrap.min.js"></script>
+
+    
+    <script src="/js/hux-blog.min.js"></script>
+
+    
+    <script src="/js/lazysizes.min.js"></script>
+
+    
+    
+
+</head>
+
+
+
+
+
+
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        
+        <div class="container-fluid">
+            
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">锅菌鱼</a>
+            </div>
+
+            
+            
+            <div id="huxblog_navbar">
+                <div class="navbar-collapse">
+                    <ul class="nav navbar-nav navbar-right">
+                        
+                        
+                        
+                        
+
+                        
+                        <li><a href="/about//">关于</a></li>
+                        
+                        <li><a href="/tags//">标签</a></li>
+                        
+                        <li><a href="/archive//">归档</a></li>
+                        
+                        
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+        
+    </nav>
+    <script>
+        
+        
+        
+        var $body = document.body;
+        var $toggle = document.querySelector('.navbar-toggle');
+        var $navbar = document.querySelector('#huxblog_navbar');
+        var $collapse = document.querySelector('.navbar-collapse');
+
+        $toggle.addEventListener('click', handleMagic)
+        function handleMagic(e) {
+            if ($navbar.className.indexOf('in') > 0) {
+                
+                $navbar.className = " ";
+                
+                setTimeout(function () {
+                    
+                    if ($navbar.className.indexOf('in') < 0) {
+                        $collapse.style.height = "0px"
+                    }
+                }, 400)
+            } else {
+                
+                $collapse.style.height = "auto"
+                $navbar.className += " in";
+            }
+        }
+    </script>
+
+
+
+<style type="text/css">
+    header.intro-header {
+        background-image: url('/bg1.jpg')
+    }
+</style>
+
+<header class="intro-header">
+    
+    <div class="container" id="post-heading">
+        <div class=" row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F" title="分布式">
+                            分布式
+                        </a>
+                        
+                        <a class="tag" href="/tags/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86" title="服务治理">
+                            服务治理
+                        </a>
+                        
+                        <a class="tag" href="/tags/%E7%AE%97%E6%B3%95" title="算法">
+                            算法
+                        </a>
+                        
+                    </div>
+                    <h1>浅析负载均衡</h1>
+                    <h2 class="subheading"></h2>
+                    <span class="meta">
+                        
+                        Posted by
+                        
+                        锅菌鱼
+                        
+                        on
+                        2025-04-16
+                        
+                        
+                        
+                        
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+
+
+<article>
+    <div class="container">
+        <div class="row">
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                
+                <h1 id="1-概述">1. 概述</h1>
+<p>负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。
+举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。
+通过负载均衡分配流量，提高系统的可用性。</p>
+<blockquote>
+<p>由谁来实现和负责负载均衡？可以是中心代理服务，可以是由sidecar程序调度，甚至可以是在客户端框架层实现，取决使用的基础架构能力。</p></blockquote>
+<h1 id="2-负载均衡策略">2. 负载均衡策略</h1>
+<p>负载均衡有一些常用的策略。</p>
+<p><strong>完全随机</strong>
+每一个请求到来，均随机分配给集群节点。</p>
+<p><strong>轮询</strong>
+按顺序分配给集群节点。</p>
+<p><strong>权重轮询</strong>
+每个集群节点都有一个权重值，按照权重值轮询，权重越高分配的请求越多。</p>
+<p><strong>哈希</strong>
+基于特定key哈希（如IP、Cookie等），固定分配到某一个集群节点。比如http层保持用户Session；数据库主从分离查询，从库实例的选择上，可以基于用户ID做哈希负载均衡，进而实现「单调读」。</p>
+<p><strong>一致性哈希</strong>
+将哈希结果映射到哈希环上，比起普通哈希策略，使用一致性哈希策略能更加友好的应对节点变更的场景。
+普通哈希会使得增加或者删除节点时会使得原有的hash结果大规模失效，比如节点数从5 -&gt; 7，原先hash值15 mod 5 = 0节点，变更后 15 mod 7 = 1节点。而使用hash环只会影响新节点临近的节点。</p>
+<h1 id="3-权重轮询的实现">3. 权重轮询的实现</h1>
+<div style="background-color:#f0f4ff;"> 
+📌 权重轮询是应用最广泛的负载均衡策略。普通的轮询可以理解为全节点等权的权重轮询。业务可以基于业务特性，赋予节点不同权重值，去定制系统负载均衡能力。 
+</div>
+<p>权重轮询一般特指平滑权重轮询，算法核心思想是，每一轮筛选，节点当前权重都增加该节点初始的权重值，选择权重最高的节点，被选中的节点在减去总权重值，每一轮筛选所有节点的权重总和都保持不变。算法核心逻辑用Golang表达如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">var</span> selected <span style="color:#ff79c6">*</span>Node
+</span></span><span style="display:flex;"><span>totalWeight <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">for</span> _, node <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">range</span> w.Nodes {
+</span></span><span style="display:flex;"><span>    node.CurrentWeight <span style="color:#ff79c6">+=</span> node.Weight
+</span></span><span style="display:flex;"><span>    totalWeight <span style="color:#ff79c6">+=</span> node.Weight
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> selected <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> <span style="color:#ff79c6">||</span> node.CurrentWeight &gt; selected.CurrentWeight {
+</span></span><span style="display:flex;"><span>        selected = node
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>selected.CurrentWeight <span style="color:#ff79c6">-=</span> totalWeight
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">return</span> selected
+</span></span></code></pre></div><blockquote>
+<p>Nginx实现的算法：<a href="https://github.com/nginx/nginx/blob/master/src/http/ngx_http_upstream_round_robin.c">https://github.com/nginx/nginx/blob/master/src/http/ngx_http_upstream_round_robin.c</a></p></blockquote>
+<p><strong>模拟代码实现</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">type</span> WRRLB <span style="color:#8be9fd;font-style:italic">struct</span> {
+</span></span><span style="display:flex;"><span>    Nodes []<span style="color:#ff79c6">*</span>Node
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">type</span> Node <span style="color:#8be9fd;font-style:italic">struct</span> {
+</span></span><span style="display:flex;"><span>    Name          <span style="color:#8be9fd">string</span>
+</span></span><span style="display:flex;"><span>    Weight        <span style="color:#8be9fd">int</span>
+</span></span><span style="display:flex;"><span>    CurrentWeight <span style="color:#8be9fd">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">NewWRRLB</span>() <span style="color:#ff79c6">*</span>WRRLB {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">&amp;</span>WRRLB{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> (w <span style="color:#ff79c6">*</span>WRRLB) <span style="color:#50fa7b">AddNode</span>(node <span style="color:#ff79c6">*</span>Node) {
+</span></span><span style="display:flex;"><span>    w.Nodes = <span style="color:#8be9fd;font-style:italic">append</span>(w.Nodes, node)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> (w <span style="color:#ff79c6">*</span>WRRLB) <span style="color:#50fa7b">Pick</span>() <span style="color:#ff79c6">*</span>Node {
+</span></span><span style="display:flex;"><span>    <span style="color:#8be9fd;font-style:italic">var</span> selected <span style="color:#ff79c6">*</span>Node
+</span></span><span style="display:flex;"><span>    totalWeight <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">for</span> _, node <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">range</span> w.Nodes {
+</span></span><span style="display:flex;"><span>        node.CurrentWeight <span style="color:#ff79c6">+=</span> node.Weight
+</span></span><span style="display:flex;"><span>        totalWeight <span style="color:#ff79c6">+=</span> node.Weight
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">if</span> selected <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> <span style="color:#ff79c6">||</span> node.CurrentWeight &gt; selected.CurrentWeight {
+</span></span><span style="display:flex;"><span>            selected = node
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    selected.CurrentWeight <span style="color:#ff79c6">-=</span> totalWeight
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> selected
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>测试用例：使用三个节点命名A、B、C，权重分别为5、3、1，调度18次
+运行结果：A选择了10次，B选择6次，C选择2次，符合权重比例。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">main</span>() {
+</span></span><span style="display:flex;"><span>    lb <span style="color:#ff79c6">:=</span> wrrlb.<span style="color:#50fa7b">NewWRRLB</span>()
+</span></span><span style="display:flex;"><span>    nodeA <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">&amp;</span>wrrlb.Node{Name: <span style="color:#f1fa8c">&#34;A&#34;</span>, Weight: <span style="color:#bd93f9">5</span>}
+</span></span><span style="display:flex;"><span>    nodeB <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">&amp;</span>wrrlb.Node{Name: <span style="color:#f1fa8c">&#34;B&#34;</span>, Weight: <span style="color:#bd93f9">3</span>}
+</span></span><span style="display:flex;"><span>    nodeC <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">&amp;</span>wrrlb.Node{Name: <span style="color:#f1fa8c">&#34;C&#34;</span>, Weight: <span style="color:#bd93f9">1</span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    lb.<span style="color:#50fa7b">AddNode</span>(nodeA)
+</span></span><span style="display:flex;"><span>    lb.<span style="color:#50fa7b">AddNode</span>(nodeB)
+</span></span><span style="display:flex;"><span>    lb.<span style="color:#50fa7b">AddNode</span>(nodeC)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    times <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">18</span>
+</span></span><span style="display:flex;"><span>    count <span style="color:#ff79c6">:=</span> <span style="color:#8be9fd;font-style:italic">make</span>(<span style="color:#8be9fd;font-style:italic">map</span>[<span style="color:#8be9fd">string</span>]<span style="color:#8be9fd">int</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">for</span> i <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">0</span>; i &lt; times; i<span style="color:#ff79c6">++</span> {
+</span></span><span style="display:flex;"><span>        node <span style="color:#ff79c6">:=</span> lb.<span style="color:#50fa7b">Pick</span>()
+</span></span><span style="display:flex;"><span>        count[node.Name]<span style="color:#ff79c6">++</span>
+</span></span><span style="display:flex;"><span>        fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Pick node:&#34;</span>, node.Name)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Count:&#34;</span>, count)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>
+  <img src="/lb_test1.png" alt="测试结果">
+
+</p>
+<h1 id="4-动态负载均衡">4. 动态负载均衡</h1>
+<p>以权重轮询作为基础，负载均衡器可以增强节点权重的计算逻辑，实现<u><strong>动态负载均衡</strong></u>。
+如平台人工调整权重，实时生效；灰度发布场景（如金丝雀发布）；最常见的是根据节点的负载情况，，比如实例的错误率、延时、请求排队时间，动态计算一个权重（如故障实例自动剔除），滚动发布。</p>
+<p><strong>模拟节点下线</strong>
+在上述模拟的代码中，增加一个goroutine，在500ms后，将A节点权重调整为0，模拟下线状态。查看运行效果，调整后A阶段不再被选择</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff79c6">go</span> <span style="color:#8be9fd;font-style:italic">func</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">select</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">case</span> <span style="color:#ff79c6">&lt;-</span>time.<span style="color:#50fa7b">After</span>(<span style="color:#bd93f9">500</span> <span style="color:#ff79c6">*</span> time.Millisecond):
+</span></span><span style="display:flex;"><span>        nodeA.Weight = <span style="color:#bd93f9">0</span>
+</span></span><span style="display:flex;"><span>        fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Node A weight updated to 0&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>times <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">18</span>
+</span></span><span style="display:flex;"><span>count <span style="color:#ff79c6">:=</span> <span style="color:#8be9fd;font-style:italic">make</span>(<span style="color:#8be9fd;font-style:italic">map</span>[<span style="color:#8be9fd">string</span>]<span style="color:#8be9fd">int</span>)
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">for</span> i <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">0</span>; i &lt; times; i<span style="color:#ff79c6">++</span> {
+</span></span><span style="display:flex;"><span>    node <span style="color:#ff79c6">:=</span> lb.<span style="color:#50fa7b">Pick</span>()
+</span></span><span style="display:flex;"><span>    count[node.Name]<span style="color:#ff79c6">++</span>
+</span></span><span style="display:flex;"><span>    fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Pick node:&#34;</span>, node.Name)
+</span></span><span style="display:flex;"><span>    time.<span style="color:#50fa7b">Sleep</span>(<span style="color:#bd93f9">100</span> <span style="color:#ff79c6">*</span> time.Millisecond)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Count:&#34;</span>, count)
+</span></span></code></pre></div><p>
+  <img src="/lb_test2.png" alt="测试结果">
+
+</p>
+
+
+                
+
+                
+                <hr>
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/post/mysql_index/" data-toggle="tooltip" data-placement="top"
+                            title="MySQL索引入门指北">&larr;
+                            Previous Post</a>
+                    </li>
+                    
+                    
+                </ul>
+                
+
+                
+
+
+
+
+            </div>
+
+            
+            
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5>
+                        <a class="catalog-toggle" href="#">目录</a>
+                    </h5>
+                    <ul class="catalog-body"></ul>
+                </div>
+            </div>
+            
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                        
+                        
+                        
+                        <a href="/tags/golang" title="golang">
+                            golang
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/javascript" title="javascript">
+                            javascript
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/mysql" title="mysql">
+                            mysql
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F" title="分布式">
+                            分布式
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%AD%98%E5%82%A8" title="存储">
+                            存储
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86" title="服务治理">
+                            服务治理
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E7%AE%97%E6%B3%95" title="算法">
+                            算法
+                        </a>
+                        
+                        
+                    </div>
+                </section>
+                
+
+                
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    <li>
+                        <a href="mailto:fishyxin@gmail.com">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		           
+                    
+                    
+                    
+                    
+
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/fishyxin">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://juejin.cn/user/3685218707323054/posts">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-git fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+            
+            
+            
+           
+             </ul>
+		<p class="copyright text-muted">
+                    Copyright &copy; 锅菌鱼 2025
+                    
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+
+
+<script>
+    function loadAsync(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+
+
+
+
+
+<script>
+    
+    if($('#tag_cloud').length !== 0){
+        loadAsync("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+
+<script>
+    loadAsync("https://cdn.jsdelivr.net/npm/fastclick@1.0.6/lib/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+
+
+
+
+<script type="text/javascript">
+    function generateCatalog(selector) {
+
+        
+        
+        
+        
+            _containerSelector = 'div.post-container'
+        
+
+        
+        var P = $(_containerSelector), a, n, t, l, i, c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+
+        
+        $(selector).html('')
+
+        
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#" + $(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="' + i + '" rel="nofollow" title="' + t + '">' + t + '</a>');
+            l = $('<li class="' + n + '_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    
+    $(".catalog-toggle").click((function (e) {
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    
+
+
+    loadAsync("\/js\/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
+
+
+
+
+
+
+</body>
+
+</html>

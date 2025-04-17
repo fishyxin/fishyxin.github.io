@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    
+    <meta property="og:site_name" content="锅菌鱼">
+    <meta property="og:type" content="article">
+
+    
+    <meta property="og:image" content="https://fishyxin.github.io//bg1.jpg">
+    <meta property="twitter:image" content="https://fishyxin.github.io//bg1.jpg" />
+    
+
+    
+    <meta name="title" content="Promise实践 封装微信小程序接口" />
+    <meta property="og:title" content="Promise实践 封装微信小程序接口" />
+    <meta property="twitter:title" content="Promise实践 封装微信小程序接口" />
+    
+
+    
+    <meta name="description" content="程序员">
+    <meta property="og:description" content="程序员" />
+    <meta property="twitter:description" content="程序员" />
+    
+
+    
+    <meta property="twitter:card" content="summary" />
+    
+    
+
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>Promise实践 封装微信小程序接口 | 锅菌鱼</title>
+
+    <link rel="canonical" href="/post/wechat_miniapp_promise/">
+
+    
+    
+    
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    
+    <link rel="stylesheet" href="/css/hugo-theme-cleanwhite.min.css">
+
+    
+    <link rel="stylesheet" href="/css/zanshang.css">
+
+    
+    <link rel="stylesheet" href="/css/font-awesome.all.min.css">
+
+    
+    
+
+    
+    <script src="/js/jquery.min.js"></script>
+
+    
+    <script src="/js/bootstrap.min.js"></script>
+
+    
+    <script src="/js/hux-blog.min.js"></script>
+
+    
+    <script src="/js/lazysizes.min.js"></script>
+
+    
+    
+
+</head>
+
+
+
+
+
+
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        
+        <div class="container-fluid">
+            
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">锅菌鱼</a>
+            </div>
+
+            
+            
+            <div id="huxblog_navbar">
+                <div class="navbar-collapse">
+                    <ul class="nav navbar-nav navbar-right">
+                        
+                        
+                        
+                        
+
+                        
+                        <li><a href="/about//">关于</a></li>
+                        
+                        <li><a href="/tags//">标签</a></li>
+                        
+                        <li><a href="/archive//">归档</a></li>
+                        
+                        
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+        
+    </nav>
+    <script>
+        
+        
+        
+        var $body = document.body;
+        var $toggle = document.querySelector('.navbar-toggle');
+        var $navbar = document.querySelector('#huxblog_navbar');
+        var $collapse = document.querySelector('.navbar-collapse');
+
+        $toggle.addEventListener('click', handleMagic)
+        function handleMagic(e) {
+            if ($navbar.className.indexOf('in') > 0) {
+                
+                $navbar.className = " ";
+                
+                setTimeout(function () {
+                    
+                    if ($navbar.className.indexOf('in') < 0) {
+                        $collapse.style.height = "0px"
+                    }
+                }, 400)
+            } else {
+                
+                $collapse.style.height = "auto"
+                $navbar.className += " in";
+            }
+        }
+    </script>
+
+
+
+<style type="text/css">
+    header.intro-header {
+        background-image: url('/bg1.jpg')
+    }
+</style>
+
+<header class="intro-header">
+    
+    <div class="container" id="post-heading">
+        <div class=" row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/javascript" title="Javascript">
+                            Javascript
+                        </a>
+                        
+                    </div>
+                    <h1>Promise实践 封装微信小程序接口</h1>
+                    <h2 class="subheading"></h2>
+                    <span class="meta">
+                        
+                        Posted by
+                        
+                        锅菌鱼
+                        
+                        on
+                        2019-11-24
+                        
+                        
+                        
+                        
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+
+
+<article>
+    <div class="container">
+        <div class="row">
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                
+                <p>相信很多开发者都遇到过回调地狱的问题。由于微信小程序的API基本都是基于回调函数的异步操作，如果不使用其他框架或者封装API，特别是使用较多的<code>wx.request()</code>，基本很快就会遇到回调地狱的问题，维护起来十分痛苦。</p>
+<h2 id="举个例子">举个例子</h2>
+<p>假设此时在正在开发一个社交小程序，其中有一个功能的是，小程序用户在登录后，可以查看附近的人。</p>
+<p>假设使用以下的实现思路，我们通过<code>wx.getLocation()</code>获取用户当前位置，然后通过<code>wx.request()</code>请求后端数据。但在此之前需要登录，参考之前官方文档推荐的登录方式，先调用<code>wx.login()</code>获取code，再用<code>wx.request()</code>请求开发者服务器，成功返回自定义登录态(一般为access_token或其他令牌形式)，之后再用自定义登录态请求业务数据。</p>
+<p>为了方便看，我把官方文档里的登录流程贴出来⬇️
+
+  <img src="https://res.wx.qq.com/wxdoc/dist/assets/img/api-login.2fcc9f35.jpg" alt="img">
+
+</p>
+<p>思路确定后，开始尝试coding(以下代码不建议看完)</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">/* 以下为Page对象的方法 */</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>getNearby<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// 判断是否已认证，可采用wx.checkSession()方案
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  <span style="color:#ff79c6">if</span> (isAuth) {
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// TODO: 获取业务数据
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">return</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// wx.login获取code
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  wx.login({
+</span></span><span style="display:flex;"><span>    success(res) {
+</span></span><span style="display:flex;"><span>      <span style="color:#ff79c6">if</span> (res.code) {
+</span></span><span style="display:flex;"><span>      
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// 获取自定义登录态
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      wx.request({
+</span></span><span style="display:flex;"><span>        url,
+</span></span><span style="display:flex;"><span>        method, 
+</span></span><span style="display:flex;"><span>        headers,
+</span></span><span style="display:flex;"><span>        data,
+</span></span><span style="display:flex;"><span>        success(res) {
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">// 请求成功
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>          <span style="color:#ff79c6">if</span> (res.statuCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">200</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#6272a4">// 读取响应体中的自定义登录态
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>            <span style="color:#8be9fd;font-style:italic">let</span> token <span style="color:#ff79c6">=</span> res.data.token
+</span></span><span style="display:flex;"><span>            <span style="color:#6272a4">// 保存自定义登录态
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>            wx.setStorageSync(<span style="color:#f1fa8c">&#34;assess_token&#34;</span>, token)
+</span></span><span style="display:flex;"><span>            
+</span></span><span style="display:flex;"><span>            <span style="color:#6272a4">// 获取位置信息
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>            wx.getLocation({
+</span></span><span style="display:flex;"><span>              success(res) {
+</span></span><span style="display:flex;"><span>                <span style="color:#8be9fd;font-style:italic">let</span> { latitude, longitude } <span style="color:#ff79c6">=</span> res
+</span></span><span style="display:flex;"><span>                
+</span></span><span style="display:flex;"><span>                <span style="color:#6272a4">// 请求业务数据
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                wx.request({
+</span></span><span style="display:flex;"><span>                  url, 
+</span></span><span style="display:flex;"><span>                  method, 
+</span></span><span style="display:flex;"><span>                  header,
+</span></span><span style="display:flex;"><span>                  data<span style="color:#ff79c6">:</span> { latitude, longitude },
+</span></span><span style="display:flex;"><span>                  success(res) {
+</span></span><span style="display:flex;"><span>                    <span style="color:#6272a4">// 请求成功
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                    <span style="color:#ff79c6">if</span> (res.statuCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">200</span>) {
+</span></span><span style="display:flex;"><span>                      <span style="color:#8be9fd;font-style:italic">let</span> data <span style="color:#ff79c6">=</span> res.data
+</span></span><span style="display:flex;"><span>                      <span style="color:#6272a4">// 数据渲染到V层
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                      <span style="color:#ff79c6">this</span>.setData({ list<span style="color:#ff79c6">:</span> data })
+</span></span><span style="display:flex;"><span>                    }
+</span></span><span style="display:flex;"><span>                    <span style="color:#6272a4">// 请求失败
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                    <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statuCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">400</span>) {
+</span></span><span style="display:flex;"><span>                      <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                    }
+</span></span><span style="display:flex;"><span>                    <span style="color:#6272a4">// 其他错误情况状态码处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                    <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                  }, 
+</span></span><span style="display:flex;"><span>                  fail(err) {
+</span></span><span style="display:flex;"><span>                    <span style="color:#6272a4">// 调用失败处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>                  }
+</span></span><span style="display:flex;"><span>                })
+</span></span><span style="display:flex;"><span>                
+</span></span><span style="display:flex;"><span>              },
+</span></span><span style="display:flex;"><span>              fail(err) {
+</span></span><span style="display:flex;"><span>                <span style="color:#6272a4">// 调用失败处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>              }
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">// 请求失败
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>          <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statuCode <span style="color:#ff79c6">==</span> <span style="color:#bd93f9">400</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>          }
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">// 其他错误情况的状态码处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>          },
+</span></span><span style="display:flex;"><span>          fail(err) {
+</span></span><span style="display:flex;"><span>            <span style="color:#6272a4">// 调用失败处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>          }
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>      } 
+</span></span><span style="display:flex;"><span>      <span style="color:#ff79c6">else</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        <span style="color:#6272a4">// 登录失败
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      }
+</span></span><span style="display:flex;"><span>    }, 
+</span></span><span style="display:flex;"><span>    fail(err) {
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// wx.login()调用失败处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      <span style="color:#6272a4">// TODO: ...
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    }
+</span></span><span style="display:flex;"><span>  }) 
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>回调地狱出现了。气功波代码，别说别人，就连自己看都会觉得恶心。</p>
+<p>某天英明的产品经理站了出来，说我们可以加点XXXXX，你可能还得找个地方嵌套其他微信接口或者多加几个<code>if else</code>分支，到时候就找个地方哭吧。</p>
+<h2 id="解决方案">解决方案</h2>
+<p>从某种意义上来说，当今风暴式的前端生态，仰仗于Node以及ES6+的出现。</p>
+<p>ES6后对于异步有多种解决方案。一种是采用<code>generator/yield</code>，但<code>generator</code>函数使用起来其实比较麻烦。另外一种是采用<code>Promise</code>，相对比较简单。ES7也可以采用<code>async/await</code>，但本质上<code>async/await</code>也是基于<code>Promise</code>。下面介绍<code>Promise</code>。</p>
+<h2 id="promise">Promise</h2>
+<h4 id="promise创建">Promise创建</h4>
+<p>创建Promise很简单，<code>Promise</code>本身是一个构造函数。通过<code>new</code>创建。构造函数的参数为一个回调函数，回调函数有两个参数为<code>resolve</code>和<code>reject</code>(无需手动维护)。<code>resolve</code>和<code>reject</code>是用来改变状态。关于状态放到后边讲。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">// Promise实例的创建
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span><span style="color:#8be9fd;font-style:italic">let</span> p <span style="color:#ff79c6">=</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>})
+</span></span></code></pre></div><p>Promise有个缺点，一旦创建便会立刻执行。所以一般会用一个函数进行包装。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">let</span> getPromise <span style="color:#ff79c6">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO    
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="promise状态">Promise状态</h4>
+<p>Promise实例有三种状态，<code>pending</code>、<code>resolved</code>和<code>rejected</code>，Promise实例创建后就会处于<code>pending</code>状态。回调函数中的<code>resolve</code>和<code>reject</code>就是用来改变Promise实例状态的。当调用<code>resolve</code>时，Promise实例会从<code>pending</code>变成<code>resolved</code>状态，表示成功。当调用<code>reject</code>时，Promise实例会从<code>pending</code>变成<code>rejected</code>状态，表示失败。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">let</span> getPromise <span style="color:#ff79c6">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO  
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#6272a4">// 处理结果
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">if</span> (result) {
+</span></span><span style="display:flex;"><span>      resolve(successObject)
+</span></span><span style="display:flex;"><span>    } 
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">else</span> {
+</span></span><span style="display:flex;"><span>      reject(error)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="常用方法">常用方法</h4>
+<p>最常用的方法为<code>then()</code>和<code>catch()</code>这两个方法，通过<code>then()</code>的传递效用就可以解决回调地狱的问题。</p>
+<p>其中<code>then()</code>可接收两个参数，都是回调函数，第一个回调函数用来处理<code>resolved</code>状态，参数为Promise实例调用<code>resolve</code>传递的成功对象。第二回调函数用来处理<code>rejected</code>状态，参数为调用Promise实例调用<code>reject</code>传递的错误对象。</p>
+<p>实际中<code>then()</code>我们一般只用来处理<code>resolved</code>的情况，即只传递第一个回调函数。对于<code>rejected</code>情况更多是采用<code>catch()</code>统一处理。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">let</span> getPromise <span style="color:#ff79c6">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO  
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#6272a4">// 处理结果
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">if</span> (result) {
+</span></span><span style="display:flex;"><span>      resolve(successObject)
+</span></span><span style="display:flex;"><span>    } 
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">else</span> {
+</span></span><span style="display:flex;"><span>      reject(error)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>getPromise()
+</span></span><span style="display:flex;"><span>  .then(res =&gt; {
+</span></span><span style="display:flex;"><span>    console.log(res)
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#ff79c6">catch</span>(err =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">//TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span></code></pre></div><p>使用<code>then()</code>方法可以继续返回一个Promise对象，通过<code>return</code>一个新的Promise，可以持续的向下传递。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>getPromise()
+</span></span><span style="display:flex;"><span>  .then(res =&gt; {	<span style="color:#6272a4">//第一层Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    console.log(res)
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">return</span> getPromise()
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>  .then(res =&gt; {	<span style="color:#6272a4">// 第二层Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    console.log(res)
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#ff79c6">catch</span>(err =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span></code></pre></div><p>其他常用方法有诸如<code>Promise.all()</code>，<code>Promise.race()</code>。当需要等待多个Promise结果时会采用。两个方法都是接收一个由Promise组成的对象数组。使用<code>Promise.all()</code>时，只有当全部的Promise对象全部<code>resolved</code> <code>Promise.all()</code>状态才是<code>resolved</code>。而<code>Promise.race()</code>只需有一个Promise对象为<code>resolved</code>时，其状态就为<code>resolved</code>。</p>
+<p>更多方法可阅读相关文档。</p>
+<h2 id="封装小程序接口">封装小程序接口</h2>
+<p>学习了Promise基础，通过封装异步操作，使用Promise链就可以解决回调地狱问题。</p>
+<p>因为<code>wx.request()</code>使用频率比较高，先对<code>wx.request()</code>封装。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">/* 可以将公用的方法挂在app.js中 */</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>request<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>(method, url, header, data) {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    wx.request({
+</span></span><span style="display:flex;"><span>      method, 
+</span></span><span style="display:flex;"><span>      url, 
+</span></span><span style="display:flex;"><span>      header, 
+</span></span><span style="display:flex;"><span>      data,
+</span></span><span style="display:flex;"><span>      success(res) {
+</span></span><span style="display:flex;"><span>        resolve(res)
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      fail(err) {
+</span></span><span style="display:flex;"><span>        reject(err)
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>基本框架就这样，我们可以进一步修改，比如请求url的基础路径，添加一些公用的header，针对状态码做一些全局处理等。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>request<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>(method, url, header <span style="color:#ff79c6">=</span> {}, data <span style="color:#ff79c6">=</span> {}) {
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// 启动时可将storage中的令牌挂到app.js 
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  <span style="color:#8be9fd;font-style:italic">let</span> token <span style="color:#ff79c6">=</span> app.assess_token
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">if</span> (token) {
+</span></span><span style="display:flex;"><span>    header[<span style="color:#f1fa8c">&#34;Authorization&#34;</span>] <span style="color:#ff79c6">=</span> token
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    wx.request({
+</span></span><span style="display:flex;"><span>      method, 
+</span></span><span style="display:flex;"><span>      url<span style="color:#ff79c6">:</span> <span style="color:#f1fa8c">&#34;https://api.domain.com/v1&#34;</span> <span style="color:#ff79c6">+</span> url,
+</span></span><span style="display:flex;"><span>      header, 
+</span></span><span style="display:flex;"><span>      data,
+</span></span><span style="display:flex;"><span>      success(res) {
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// 请求成功
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        <span style="color:#ff79c6">if</span> (res.statusCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">200</span>) {
+</span></span><span style="display:flex;"><span>          resolve(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// 请求成功无响应体
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statusCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">204</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">/* 
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4">          可做一些成功提示，
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4">          如调用wx.showToast()、wx.showModal()或自定义弹出层等 
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4">          */</span>
+</span></span><span style="display:flex;"><span>          resolve(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// 未认证
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statusCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">401</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">/* 可做一些错误提示，或者直接跳转至登录页面等 */</span>
+</span></span><span style="display:flex;"><span>          reject(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statusCode <span style="color:#ff79c6">==</span> <span style="color:#bd93f9">400</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">/* 可做一些错误提示*/</span>
+</span></span><span style="display:flex;"><span>          reject(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">else</span> <span style="color:#ff79c6">if</span> (res.statuCode <span style="color:#ff79c6">===</span> <span style="color:#bd93f9">403</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#6272a4">/* 无权限错误提示*/</span>
+</span></span><span style="display:flex;"><span>          reject(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// ...其他状态码处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      },
+</span></span><span style="display:flex;"><span>      fail(err) {
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">/* 可做一些全局错误提示，如网络错误等 */</span>
+</span></span><span style="display:flex;"><span>        reject(err)
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>封装之后，举个例子，发送请求就可以修改为</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">/* 方法体中 */</span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">let</span> app <span style="color:#ff79c6">=</span> getApp()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>app.request(<span style="color:#f1fa8c">&#34;POST&#34;</span>, <span style="color:#f1fa8c">&#34;/auth&#34;</span>, {}, { username, password })	 
+</span></span><span style="display:flex;"><span>  .then(res =&gt; {  <span style="color:#6272a4">// 第一层请求
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#6272a4">// TODO 成功处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">return</span> app.request(<span style="color:#f1fa8c">&#34;GET&#34;</span>, <span style="color:#f1fa8c">&#34;/goods&#34;</span>, {}, )
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .then(res =&gt; {	<span style="color:#6272a4">// 第二层请求
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#6272a4">// TODO 成功处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#6272a4">// 渲染视图
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#ff79c6">catch</span>(err =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO 错误处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  })
+</span></span></code></pre></div><p>封装一下其他的微信接口</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">/* 可以将公用的方法挂在app.js中 */</span>
+</span></span><span style="display:flex;"><span>wxLogin<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resovle, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    wx.login({
+</span></span><span style="display:flex;"><span>      success(res) {
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">if</span> (res.code) {
+</span></span><span style="display:flex;"><span>          resovle(res)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">else</span> {
+</span></span><span style="display:flex;"><span>          reject({ message<span style="color:#ff79c6">:</span> <span style="color:#f1fa8c">&#34;登录失败&#34;</span> })
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      fail(err) {
+</span></span><span style="display:flex;"><span>        reject(err)
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>getLocation<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> <span style="color:#ff79c6">new</span> <span style="color:#8be9fd;font-style:italic">Promise</span>((resolve, reject) =&gt; {
+</span></span><span style="display:flex;"><span>    wx.getLocation({
+</span></span><span style="display:flex;"><span>      success(res) {
+</span></span><span style="display:flex;"><span>        resolve(res)
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      fail(err) {
+</span></span><span style="display:flex;"><span>        reject(err)
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>对于最初的例子，可以就修改为</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#6272a4">/* Page对象的方法 */</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>getNearby<span style="color:#ff79c6">:</span> <span style="color:#8be9fd;font-style:italic">function</span>() { 
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// 判断是否已认证，可采用wx.checkSession()方案
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  <span style="color:#ff79c6">if</span> (isAuth) {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// TODO: 获取业务数据
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">return</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  
+</span></span><span style="display:flex;"><span>  app.wxLogin()
+</span></span><span style="display:flex;"><span>    .then(res =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// 将code发送给开发者服务器，获取自定义登录态
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      <span style="color:#ff79c6">return</span> app.request(<span style="color:#f1fa8c">&#34;POST&#34;</span>, <span style="color:#f1fa8c">&#34;/auth&#34;</span>, {}, { code, res.code })
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .then(res =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// 保存自定义登录态
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      setStorage(<span style="color:#f1fa8c">&#34;access_token&#34;</span>, res.data.access_token)
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// TODO: 其他登录成功操作...	
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      <span style="color:#ff79c6">return</span> app.getLocation()
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .then(({ latitude, longitude }) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#8be9fd;font-style:italic">let</span> url <span style="color:#ff79c6">=</span> <span style="color:#f1fa8c">&#34;/nearby?latitude=&#34;</span> <span style="color:#ff79c6">+</span> latitude <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;&amp;longitude=&#34;</span> <span style="color:#ff79c6">+</span> longitude
+</span></span><span style="display:flex;"><span>      <span style="color:#ff79c6">return</span> app.request(<span style="color:#f1fa8c">&#34;GET&#34;</span>, url)
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .then(res =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// TODO: 数据处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      <span style="color:#8be9fd;font-style:italic">let</span> data <span style="color:#ff79c6">=</span> res.data
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// 渲染视图层
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>      <span style="color:#ff79c6">this</span>.setData({ data })
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .<span style="color:#ff79c6">catch</span>(err =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#6272a4">// TODO 错误处理
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    })
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>之后若有需添加新的请求或者其他异步操作，直接在Promise链上操作就行了。</p>
+<h2 id="推荐阅读">推荐阅读</h2>
+<p><a href="http://es6.ruanyifeng.com/#docs/promise">http://es6.ruanyifeng.com/#docs/promise</a></p>
+<p><a href="https://devdocs.io/javascript-promise/">https://devdocs.io/javascript-promise/</a></p>
+
+
+                
+
+                
+                <hr>
+                <ul class="pager">
+                    
+                    
+                    <li class="next">
+                        <a href="/post/go_reflect_simple_copy_properties/" data-toggle="tooltip" data-placement="top"
+                            title="Go反射 实现任意类型属性拷贝">Next
+                            Post &rarr;</a>
+                    </li>
+                    
+                </ul>
+                
+
+                
+
+
+
+
+            </div>
+
+            
+            
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5>
+                        <a class="catalog-toggle" href="#">目录</a>
+                    </h5>
+                    <ul class="catalog-body"></ul>
+                </div>
+            </div>
+            
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                        
+                        
+                        
+                        <a href="/tags/golang" title="golang">
+                            golang
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/javascript" title="javascript">
+                            javascript
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/mysql" title="mysql">
+                            mysql
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F" title="分布式">
+                            分布式
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%AD%98%E5%82%A8" title="存储">
+                            存储
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86" title="服务治理">
+                            服务治理
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E7%AE%97%E6%B3%95" title="算法">
+                            算法
+                        </a>
+                        
+                        
+                    </div>
+                </section>
+                
+
+                
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    <li>
+                        <a href="mailto:fishyxin@gmail.com">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		           
+                    
+                    
+                    
+                    
+
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/fishyxin">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://juejin.cn/user/3685218707323054/posts">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-git fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+            
+            
+            
+           
+             </ul>
+		<p class="copyright text-muted">
+                    Copyright &copy; 锅菌鱼 2025
+                    
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+
+
+<script>
+    function loadAsync(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+
+
+
+
+
+<script>
+    
+    if($('#tag_cloud').length !== 0){
+        loadAsync("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+
+<script>
+    loadAsync("https://cdn.jsdelivr.net/npm/fastclick@1.0.6/lib/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+
+
+
+
+<script type="text/javascript">
+    function generateCatalog(selector) {
+
+        
+        
+        
+        
+            _containerSelector = 'div.post-container'
+        
+
+        
+        var P = $(_containerSelector), a, n, t, l, i, c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+
+        
+        $(selector).html('')
+
+        
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#" + $(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="' + i + '" rel="nofollow" title="' + t + '">' + t + '</a>');
+            l = $('<li class="' + n + '_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    
+    $(".catalog-toggle").click((function (e) {
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    
+
+
+    loadAsync("\/js\/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
+
+
+
+
+
+
+</body>
+
+</html>

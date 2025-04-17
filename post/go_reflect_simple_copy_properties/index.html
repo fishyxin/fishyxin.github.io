@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    
+    <meta property="og:site_name" content="锅菌鱼">
+    <meta property="og:type" content="article">
+
+    
+    <meta property="og:image" content="https://fishyxin.github.io//bg1.jpg">
+    <meta property="twitter:image" content="https://fishyxin.github.io//bg1.jpg" />
+    
+
+    
+    <meta name="title" content="Go反射 实现任意类型属性拷贝" />
+    <meta property="og:title" content="Go反射 实现任意类型属性拷贝" />
+    <meta property="twitter:title" content="Go反射 实现任意类型属性拷贝" />
+    
+
+    
+    <meta name="description" content="程序员">
+    <meta property="og:description" content="程序员" />
+    <meta property="twitter:description" content="程序员" />
+    
+
+    
+    <meta property="twitter:card" content="summary" />
+    
+    
+
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>Go反射 实现任意类型属性拷贝 | 锅菌鱼</title>
+
+    <link rel="canonical" href="/post/go_reflect_simple_copy_properties/">
+
+    
+    
+    
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    
+    <link rel="stylesheet" href="/css/hugo-theme-cleanwhite.min.css">
+
+    
+    <link rel="stylesheet" href="/css/zanshang.css">
+
+    
+    <link rel="stylesheet" href="/css/font-awesome.all.min.css">
+
+    
+    
+
+    
+    <script src="/js/jquery.min.js"></script>
+
+    
+    <script src="/js/bootstrap.min.js"></script>
+
+    
+    <script src="/js/hux-blog.min.js"></script>
+
+    
+    <script src="/js/lazysizes.min.js"></script>
+
+    
+    
+
+</head>
+
+
+
+
+
+
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        
+        <div class="container-fluid">
+            
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">锅菌鱼</a>
+            </div>
+
+            
+            
+            <div id="huxblog_navbar">
+                <div class="navbar-collapse">
+                    <ul class="nav navbar-nav navbar-right">
+                        
+                        
+                        
+                        
+
+                        
+                        <li><a href="/about//">关于</a></li>
+                        
+                        <li><a href="/tags//">标签</a></li>
+                        
+                        <li><a href="/archive//">归档</a></li>
+                        
+                        
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+        
+    </nav>
+    <script>
+        
+        
+        
+        var $body = document.body;
+        var $toggle = document.querySelector('.navbar-toggle');
+        var $navbar = document.querySelector('#huxblog_navbar');
+        var $collapse = document.querySelector('.navbar-collapse');
+
+        $toggle.addEventListener('click', handleMagic)
+        function handleMagic(e) {
+            if ($navbar.className.indexOf('in') > 0) {
+                
+                $navbar.className = " ";
+                
+                setTimeout(function () {
+                    
+                    if ($navbar.className.indexOf('in') < 0) {
+                        $collapse.style.height = "0px"
+                    }
+                }, 400)
+            } else {
+                
+                $collapse.style.height = "auto"
+                $navbar.className += " in";
+            }
+        }
+    </script>
+
+
+
+<style type="text/css">
+    header.intro-header {
+        background-image: url('/bg1.jpg')
+    }
+</style>
+
+<header class="intro-header">
+    
+    <div class="container" id="post-heading">
+        <div class=" row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/golang" title="Golang">
+                            Golang
+                        </a>
+                        
+                    </div>
+                    <h1>Go反射 实现任意类型属性拷贝</h1>
+                    <h2 class="subheading"></h2>
+                    <span class="meta">
+                        
+                        Posted by
+                        
+                        锅菌鱼
+                        
+                        on
+                        2019-11-29
+                        
+                        
+                        
+                        
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+
+
+<article>
+    <div class="container">
+        <div class="row">
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                
+                <p>开发中会频繁的使用各种对象，在Java中称为Javabean，在Go中用结构体。使用ORM框架时，经常会用实体类来映射数据表，但实际上很少会直接使用映射数据表的实体类对象在各层传输，更多的会使用其他对象(如DTO，VO等)，对读出的实体类对象的属性进行过滤或增加。</p>
+<p>用Java的朋友都知道，有个便利的工具叫BeanUtils，调用一下<code>copy()</code>方法即可去除大量的setter操作。Go自带很多package，但并没有任意类型的拷贝方法，内置的<code>copy()</code>也只能拷贝切片。</p>
+<p>不过Go自带反射包，利用反射，我们可以手动实现一个任意类型属性拷贝的函数或方法。</p>
+<p>实现起来也很简单，喜欢琢磨的朋友可以直接阅读反射的文档自己实现。<br><a href="https://golang.org/pkg/reflect/">https://golang.org/pkg/reflect/</a></p>
+<h2 id="overview">Overview</h2>
+<p>以下摘自文档</p>
+<blockquote>
+<p>Package reflect implements run-time reflection, allowing a program to manipulate objects with arbitrary types. The typical use is to take a value with static type interface{} and extract its dynamic type information by calling TypeOf, which returns a Type.</p>
+<p>A call to ValueOf returns a Value representing the run-time data. Zero takes a Type and returns a Value representing a zero value for that type.</p></blockquote>
+<p>大致意思就是说，通过利用反射，可以在程序运行时处理任意类型。通过<code>TypeOf</code>方法取得取得类型信息，包装在<code>Type</code>中。通过<code>ValueOf</code>取得运行时的数据，包装在<code>Value</code>中。</p>
+<p>下面介绍<code>reflect</code>包中的一些类型及方法。已经熟悉反射包的大佬可以直接跳到最后。</p>
+<h2 id="kind">Kind</h2>
+<p>定义：<code>type Kind uint</code></p>
+<p>用<code>iota</code>定义一系列 <code>Kind</code>常量，表示待处理类型的类型。听起来的很绕，其实很好理解，除了基本类型外，当我们自定义结构体时，<code>Kind</code>为<code>Strcut</code>，当处理的类型为指针时，<code>Kind</code>为<code>Ptr</code>，还有其他的诸如<code>Slice</code>,<code>Map</code>,<code>Arrray</code>,<code>Chan</code>等。</p>
+<p>在<code>Value</code>和<code>Type</code>的一些方法只能给特定的类型使用，比如说<code>Type</code>的<code>MapOf()</code>方法，只能是<code>Map</code>使用，当使用的<code>Type</code>不是<code>Map</code>时会报<code>panic</code>。诸如此类的方法还有很多，因为类型不匹配时会直接<code>panic()</code>，为了安全，在使用特定方法时应该先对<code>Kind</code>进行判断。</p>
+<h2 id="type">Type</h2>
+<p>定义的<code>Type</code>是接口类型，获得实例后可以通过调用一系列方法获得类型相关信息，可以通过<code>reflect.TypeOf(i interface{})</code>获得实例。</p>
+<p>通过<code>Name()</code>方法可以获得类型名称。<code>Kind()</code>方法可以获得类型的<code>Kind</code>。</p>
+<p>如果<code>Kind</code>为结构体类型<code>Struct</code>，通过<code>NumField()</code>可获得结构体的属性个数，可以通过<code>Field(i int) StructField</code>,<code> FieldByName(name string) StructField</code>获得具体的属性，返回值是另外一种定义的结构体类型<code>StructField</code>。</p>
+<p>如果<code>Kind</code>为<code>Array</code>, <code>Chan</code>, <code>Map</code>, <code>Ptr</code>, <code>Slice</code>,可用通过<code>Elem()</code>获得具体的元素的<code>Type</code>。</p>
+<p>一些特定方法只能给特定的类型使用，使用不当会直接<code>panic()</code>。</p>
+<p>两种<code>Type</code>是可比较的，可以使用 == 或 != 。</p>
+<h2 id="structfield">StructField</h2>
+<p>用来描述结构体中单个属性，定义如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Go" data-lang="Go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">type</span> StructField <span style="color:#8be9fd;font-style:italic">struct</span> {
+</span></span><span style="display:flex;"><span>    Name <span style="color:#8be9fd">string</span>
+</span></span><span style="display:flex;"><span>    PkgPath <span style="color:#8be9fd">string</span>
+</span></span><span style="display:flex;"><span>    Type      Type      
+</span></span><span style="display:flex;"><span>    Tag       StructTag 
+</span></span><span style="display:flex;"><span>    Offset    <span style="color:#8be9fd">uintptr</span>   
+</span></span><span style="display:flex;"><span>    Index     []<span style="color:#8be9fd">int</span>     
+</span></span><span style="display:flex;"><span>    Anonymous <span style="color:#8be9fd">bool</span>     
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>其中<code>Name</code>为属性名称，<code>PkgPath</code>为包路径，<code>Type</code>为属性的类型信息,<code>Tag</code>为标签(常用来处理编码解码问题，有兴趣的朋友可以看一下相关库和源码)。</p>
+<h2 id="value">Value</h2>
+<p>当使用<code>Type</code>时，我们只能获取到类型的相关信息，若需要操作具体值，我们就得使用<code>Value</code>，通过<code>reflect.ValueOf(i interface{})</code>。与<code>Type</code>不同，<code>Value</code>的类型为结构体。<code>Value</code>也有跟<code>Type</code>相似的方法，如<code>NumField()</code>，<code>Field(i)</code>,<code>FieldByName(name string)</code>,<code>Elem()</code>等。</p>
+<p>此外<code>Value</code>还有一系列set方法，如果值可以设置，那么我们可以动态改变值。</p>
+<p>与<code>Type</code>不同，<code>Value</code>的比较是不可以用 == 或 != ，必须通过相应方法来进行比较。</p>
+<p>同样的，一些特定方法只能给特定的类型使用，使用不当会直接<code>panic()</code>。</p>
+<h2 id="实践">实践</h2>
+<p>上文简单了解了一下反射的基础。相信很多人都知道怎么实现了。</p>
+<p>大致思路：因为需要改变值，所以目标参数传递时必须使用结构体指针，而来源参数可以传指针或者实例。遍历需拷贝类型的所有属性值，用<code>Field(i int)</code>获取单一属性，取出<code>StuctField</code>的<code>Name</code>，再用<code>Name</code>通过<code>FieldByName(name string)</code>获取被拷贝对象的值，如果获取成功，则调用<code>Set(v Value)</code>动态设置值。</p>
+<p>coding</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Go" data-lang="Go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">SimpleCopyProperties</span>(dst, src <span style="color:#8be9fd;font-style:italic">interface</span>{}) (err <span style="color:#8be9fd">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#6272a4">// 防止意外panic</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">defer</span> <span style="color:#8be9fd;font-style:italic">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#ff79c6">if</span> e <span style="color:#ff79c6">:=</span> <span style="color:#8be9fd;font-style:italic">recover</span>(); e <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+</span></span><span style="display:flex;"><span>			err = errors.<span style="color:#50fa7b">New</span>(fmt.<span style="color:#50fa7b">Sprintf</span>(<span style="color:#f1fa8c">&#34;%v&#34;</span>, e))
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	dstType, dstValue <span style="color:#ff79c6">:=</span> reflect.<span style="color:#50fa7b">TypeOf</span>(dst), reflect.<span style="color:#50fa7b">ValueOf</span>(dst)
+</span></span><span style="display:flex;"><span>	srcType, srcValue <span style="color:#ff79c6">:=</span> reflect.<span style="color:#50fa7b">TypeOf</span>(src), reflect.<span style="color:#50fa7b">ValueOf</span>(src)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#6272a4">// dst必须结构体指针类型</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">if</span> dstType.<span style="color:#50fa7b">Kind</span>() <span style="color:#ff79c6">!=</span> reflect.Ptr <span style="color:#ff79c6">||</span> dstType.<span style="color:#50fa7b">Elem</span>().<span style="color:#50fa7b">Kind</span>() <span style="color:#ff79c6">!=</span> reflect.Struct {
+</span></span><span style="display:flex;"><span>		<span style="color:#ff79c6">return</span> errors.<span style="color:#50fa7b">New</span>(<span style="color:#f1fa8c">&#34;dst type should be a struct pointer&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#6272a4">// src必须为结构体或者结构体指针</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">if</span> srcType.<span style="color:#50fa7b">Kind</span>() <span style="color:#ff79c6">==</span> reflect.Ptr {
+</span></span><span style="display:flex;"><span>		srcType, srcValue = srcType.<span style="color:#50fa7b">Elem</span>(), srcValue.<span style="color:#50fa7b">Elem</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">if</span> srcType.<span style="color:#50fa7b">Kind</span>() <span style="color:#ff79c6">!=</span> reflect.Struct {
+</span></span><span style="display:flex;"><span>		<span style="color:#ff79c6">return</span> errors.<span style="color:#50fa7b">New</span>(<span style="color:#f1fa8c">&#34;src type should be a struct or a struct pointer&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#6272a4">// 取具体内容</span>
+</span></span><span style="display:flex;"><span>	dstType, dstValue = dstType.<span style="color:#50fa7b">Elem</span>(), dstValue.<span style="color:#50fa7b">Elem</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#6272a4">// 属性个数</span>
+</span></span><span style="display:flex;"><span>	propertyNums <span style="color:#ff79c6">:=</span> dstType.<span style="color:#50fa7b">NumField</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">for</span> i <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">0</span>; i &lt; propertyNums; i<span style="color:#ff79c6">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#6272a4">// 属性</span>
+</span></span><span style="display:flex;"><span>		property <span style="color:#ff79c6">:=</span> dstType.<span style="color:#50fa7b">Field</span>(i)
+</span></span><span style="display:flex;"><span>		<span style="color:#6272a4">// 待填充属性值</span>
+</span></span><span style="display:flex;"><span>		propertyValue <span style="color:#ff79c6">:=</span> srcValue.<span style="color:#50fa7b">FieldByName</span>(property.Name)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#6272a4">// 无效，说明src没有这个属性 || 属性同名但类型不同</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#ff79c6">if</span> !propertyValue.<span style="color:#50fa7b">IsValid</span>() <span style="color:#ff79c6">||</span> property.Type <span style="color:#ff79c6">!=</span> propertyValue.<span style="color:#50fa7b">Type</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#ff79c6">continue</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#ff79c6">if</span> dstValue.<span style="color:#50fa7b">Field</span>(i).<span style="color:#50fa7b">CanSet</span>() {
+</span></span><span style="display:flex;"><span>			dstValue.<span style="color:#50fa7b">Field</span>(i).<span style="color:#50fa7b">Set</span>(propertyValue)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="小结">小结</h2>
+<p>至此，我们已经完成了同名属性拷贝。因为使用<code>reflect</code>包时，到处都有<code>panic</code>，所以在最前面需要用延迟函数<code>recover</code>一下<code>panic</code>。参数传递时，第二个参数使用指针还时实例请自行斟酌。需要注意的是，该拷贝方法为浅拷贝，换句话说，如果说对象内嵌套有其他的引用类型如<code>Slice</code>,<code>Map</code>等，用此方法完成拷贝后，源对象中的引用类型属性内容发生了改变，该对象对应的属性中内容也会改变。</p>
+<p>反射包中还有很多有意思的东西，感兴趣的朋友可以参考文档。<br>
+<a href="https://golang.org/pkg/reflect/">https://golang.org/pkg/reflect/</a></p>
+
+
+                
+
+                
+                <hr>
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/post/wechat_miniapp_promise/" data-toggle="tooltip" data-placement="top"
+                            title="Promise实践 封装微信小程序接口">&larr;
+                            Previous Post</a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/post/mysql_index/" data-toggle="tooltip" data-placement="top"
+                            title="MySQL索引入门指北">Next
+                            Post &rarr;</a>
+                    </li>
+                    
+                </ul>
+                
+
+                
+
+
+
+
+            </div>
+
+            
+            
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5>
+                        <a class="catalog-toggle" href="#">目录</a>
+                    </h5>
+                    <ul class="catalog-body"></ul>
+                </div>
+            </div>
+            
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                        
+                        
+                        
+                        <a href="/tags/golang" title="golang">
+                            golang
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/javascript" title="javascript">
+                            javascript
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/mysql" title="mysql">
+                            mysql
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F" title="分布式">
+                            分布式
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E5%AD%98%E5%82%A8" title="存储">
+                            存储
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86" title="服务治理">
+                            服务治理
+                        </a>
+                        
+                        
+                        
+                        <a href="/tags/%E7%AE%97%E6%B3%95" title="算法">
+                            算法
+                        </a>
+                        
+                        
+                    </div>
+                </section>
+                
+
+                
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    <li>
+                        <a href="mailto:fishyxin@gmail.com">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		           
+                    
+                    
+                    
+                    
+
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/fishyxin">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://juejin.cn/user/3685218707323054/posts">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-git fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+            
+            
+            
+           
+             </ul>
+		<p class="copyright text-muted">
+                    Copyright &copy; 锅菌鱼 2025
+                    
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+
+
+<script>
+    function loadAsync(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+
+
+
+
+
+<script>
+    
+    if($('#tag_cloud').length !== 0){
+        loadAsync("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+
+<script>
+    loadAsync("https://cdn.jsdelivr.net/npm/fastclick@1.0.6/lib/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+
+
+
+
+<script type="text/javascript">
+    function generateCatalog(selector) {
+
+        
+        
+        
+        
+            _containerSelector = 'div.post-container'
+        
+
+        
+        var P = $(_containerSelector), a, n, t, l, i, c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+
+        
+        $(selector).html('')
+
+        
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#" + $(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="' + i + '" rel="nofollow" title="' + t + '">' + t + '</a>');
+            l = $('<li class="' + n + '_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    
+    $(".catalog-toggle").click((function (e) {
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    
+
+
+    loadAsync("\/js\/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
+
+
+
+
+
+
+</body>
+
+</html>

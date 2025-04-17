@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>算法 on 锅菌鱼</title>
+    <link>https://fishyxin.github.io/tags/%E7%AE%97%E6%B3%95/</link>
+    <description>Recent content in 算法 on 锅菌鱼</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Wed, 16 Apr 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://fishyxin.github.io/tags/%E7%AE%97%E6%B3%95/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>浅析负载均衡</title>
+      <link>https://fishyxin.github.io/post/loadbalance/</link>
+      <pubDate>Wed, 16 Apr 2025 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/post/loadbalance/</guid>
+      <description>&lt;h1 id=&#34;1-概述&#34;&gt;1. 概述&lt;/h1&gt;&#xA;&lt;p&gt;负载均衡（LoadBalance）是微服务架构的重要能力。负载均衡是按照一定的策略，将请求分配给服务器。&#xA;举个例子，一主三从的数据库架构，当客户端的查询请求选择请求从库时，可以选择直连一台从库工作，但从库集群部署的意义就失去了。此时就需要有负载均衡，根据策略将请求分配给从库阶段。&#xA;通过负载均衡分配流量，提高系统的可用性。&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
