@@ -34,7 +34,7 @@
     <meta name="keyword"  content="">
     <link rel="shortcut icon" href="/img/favicon.ico">
 
-    <title>锅菌鱼</title>
+    <title>Archives | 锅菌鱼</title>
 
     <link rel="canonical" href="/archive/">
 
@@ -183,6 +183,8 @@
                             <h1 class="title is-4 has-text-weight-normal">2025</h1>
                         
                     
+                        
+                    
 
                     <ul>
                     
@@ -190,6 +192,13 @@
                             <span>04/16</span> — 
                             <a href="/post/loadbalance/">
                                 浅析负载均衡
+                            </a>
+                        </li>
+                    
+                        <li>
+                            <span>04/16</span> — 
+                            <a href="/post/go_timeout_control/">
+                                Go实现超时控制
                             </a>
                         </li>
                     
@@ -502,6 +511,63 @@
 
 
 
+
+<script type="text/javascript">
+    function generateCatalog(selector) {
+
+        
+        
+        
+        
+            _containerSelector = 'div.post-container'
+        
+
+        
+        var P = $(_containerSelector), a, n, t, l, i, c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+
+        
+        $(selector).html('')
+
+        
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#" + $(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="' + i + '" rel="nofollow" title="' + t + '">' + t + '</a>');
+            l = $('<li class="' + n + '_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    
+    $(".catalog-toggle").click((function (e) {
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    
+
+
+    loadAsync("\/js\/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
 
 
 

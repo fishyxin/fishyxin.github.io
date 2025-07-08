@@ -9,6 +9,13 @@
     <lastBuildDate>Wed, 16 Apr 2025 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://fishyxin.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Go实现超时控制</title>
+      <link>https://fishyxin.github.io/post/go_timeout_control/</link>
+      <pubDate>Tue, 08 Jul 2025 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/post/go_timeout_control/</guid>
+      <description>&lt;h1 id=&#34;应用场景&#34;&gt;应用场景&lt;/h1&gt;&#xA;&lt;p&gt;交易、金融等事务系统往往会有各种下游，绝大多数时候我们会以同步方式进行访问，如调用RPC、HTTP等。&#xA;这些下游在通常延时相对稳定，但有时可能出现极端的超大延时，这些极端case可能具备特定的业务特征，也有可能单纯是硬件、网络的问题造成，最终表现在系统P99或者P999的延时出现了突刺，如果是面向C端的场景，也会向用户报出一些系统错误，造成用户体验的下降。&#xA;一种简易的解决方案是，针对关键的下游节点增加&lt;strong&gt;超时控制&lt;/strong&gt;。在特定时间内，如果下游到期还未返回，不再暴露系统级错误，而是做特殊化处理，比如返回「处理中」状态。&lt;/p&gt;</description>
+    </item>
+    <item>
       <title>浅析负载均衡</title>
       <link>https://fishyxin.github.io/post/loadbalance/</link>
       <pubDate>Wed, 16 Apr 2025 00:00:00 +0000</pubDate>

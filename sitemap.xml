@@ -2,6 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://fishyxin.github.io/tags/golang/</loc>
+    <lastmod>2025-04-16T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://fishyxin.github.io/post/go_timeout_control/</loc>
+    <lastmod>2025-04-16T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://fishyxin.github.io/post/</loc>
     <lastmod>2025-04-16T00:00:00+00:00</lastmod>
   </url><url>
@@ -31,9 +37,6 @@
   </url><url>
     <loc>https://fishyxin.github.io/tags/%E5%AD%98%E5%82%A8/</loc>
     <lastmod>2020-02-26T22:31:00+08:00</lastmod>
-  </url><url>
-    <loc>https://fishyxin.github.io/tags/golang/</loc>
-    <lastmod>2019-11-29T19:59:14+08:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/post/go_reflect_simple_copy_properties/</loc>
     <lastmod>2019-11-29T19:59:14+08:00</lastmod>

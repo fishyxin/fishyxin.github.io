@@ -9,6 +9,13 @@
     <lastBuildDate>Wed, 16 Apr 2025 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://fishyxin.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Golang</title>
+      <link>https://fishyxin.github.io/tags/golang/</link>
+      <pubDate>Tue, 08 Jul 2025 00:00:00 +0000</pubDate>
+      <guid>https://fishyxin.github.io/tags/golang/</guid>
+      <description></description>
+    </item>
+    <item>
       <title>分布式</title>
       <link>https://fishyxin.github.io/tags/%E5%88%86%E5%B8%83%E5%BC%8F/</link>
       <pubDate>Wed, 16 Apr 2025 00:00:00 +0000</pubDate>
@@ -41,13 +48,6 @@
       <link>https://fishyxin.github.io/tags/%E5%AD%98%E5%82%A8/</link>
       <pubDate>Wed, 26 Feb 2020 22:31:00 +0800</pubDate>
       <guid>https://fishyxin.github.io/tags/%E5%AD%98%E5%82%A8/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Golang</title>
-      <link>https://fishyxin.github.io/tags/golang/</link>
-      <pubDate>Fri, 29 Nov 2019 19:59:14 +0800</pubDate>
-      <guid>https://fishyxin.github.io/tags/golang/</guid>
       <description></description>
     </item>
     <item>
