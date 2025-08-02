@@ -3,18 +3,24 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://fishyxin.github.io/tags/golang/</loc>
-    <lastmod>2025-07-08T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://fishyxin.github.io/post/go_timeout_control/</loc>
-    <lastmod>2025-07-08T00:00:00+00:00</lastmod>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/post/</loc>
-    <lastmod>2025-07-08T00:00:00+00:00</lastmod>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/tags/</loc>
-    <lastmod>2025-07-08T00:00:00+00:00</lastmod>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://fishyxin.github.io/post/token_bucket_impl/</loc>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://fishyxin.github.io/tags/%E7%AE%97%E6%B3%95/</loc>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/</loc>
+    <lastmod>2025-08-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://fishyxin.github.io/post/go_timeout_control/</loc>
     <lastmod>2025-07-08T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/tags/%E5%88%86%E5%B8%83%E5%BC%8F/</loc>
@@ -24,9 +30,6 @@
     <lastmod>2025-04-16T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/post/loadbalance/</loc>
-    <lastmod>2025-04-16T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://fishyxin.github.io/tags/%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2025-04-16T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://fishyxin.github.io/tags/mysql/</loc>
